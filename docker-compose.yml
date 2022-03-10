@@ -1,0 +1,40 @@
+version: '3.0'
+
+services:
+
+  db:
+    build:
+      context: ./project/db
+      dockerfile: Dockerfile
+    expose:
+      - 5432
+    ports:
+      # Just to be able to access via Postico - remove 
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER-pruizruiz}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD-password}
+
+  api:
+    # hostname: api
+    build:
+      context: ./project
+      dockerfile: Dockerfile
+      args:
+        skip_tests: 1
+    image: pruizruiz/porfolio
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    env_file:
+      - compose.env
+    environment:
+      - API_VERSION=${API_VERSION-v1}
+      - APP_PORT=${APP_PORT:-8898}
+      - DATABASE_URL=postgresql://pruizruiz:password@db:5432/portfolio
+      - DATABASE_URL_TEST=postgresql://pruizruiz:password@db:5432/portfolio_test
+    volumes:
+      - ./project/api:/app/api   # <- docker-compose related path !
+    depends_on:
+      - db
+    # Make it such that changes locally are refreshed into the container
+    command: /bin/bash -c "/app/entrypoint.sh --reload"
